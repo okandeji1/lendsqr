@@ -12,6 +12,10 @@ import logger from './util/logger/logger';
 // HACK: to get app root
 process.env.APP_ROOT = path.join(__dirname, '../');
 
+// import routes
+import { userRouter } from './api/v1/user/user.route';
+import { Model } from 'objection';
+
 // set up error handler
 process.on('uncaughtException', (e: any) => {
   logger.log('error', e.stack);
@@ -27,7 +31,8 @@ process.on('unhandledRejection', (e: any) => {
 const app: Application = express();
 
 // Database connection
-knex(knexConfig);
+const connection = knex(knexConfig);
+Model.knex(connection);
 // Testing connection
 try {
   const result = knex('users').select().limit(1);
@@ -49,6 +54,9 @@ app.use(
 app.use(compression());
 app.use(cors());
 app.use(express.json());
+
+// routes
+app.use('/api/v1/users', userRouter);
 
 app.all('*', (req, _res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
