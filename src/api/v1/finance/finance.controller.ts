@@ -87,9 +87,11 @@ export const verifyWalletWithPaystack = catchAsyncError(async (req, res) => {
   // uncoment next line if you find out that status: 'success' in live mode
   if (responseData.status && responseData.data.status === 'success') {
     obj.username = responseData.data.metadata.custom_fields[0].username;
+    let newUserTransaction: any;
+    let updatedUser: any;
 
     // Start transaction
-    const returnValue = await User.transaction(async (trx) => {
+    await User.transaction(async (trx) => {
       const user: any = await User.query(trx).findOne({ username: obj.username });
 
       if (!user) {
@@ -103,9 +105,9 @@ export const verifyWalletWithPaystack = catchAsyncError(async (req, res) => {
 
       await user.$query(trx).increment('balance', amount);
 
-      const updatedUser: any = await User.query(trx).findOne({ username: obj.username });
+      updatedUser = await User.query(trx).findOne({ username: obj.username });
 
-      const newUserTransaction: any = await UserTransaction.query(trx).insert({
+      newUserTransaction = await UserTransaction.query(trx).insert({
         uuid: v4(),
         reference: obj.reference,
         amount: responseData.data.amount / 100,
@@ -133,20 +135,15 @@ export const verifyWalletWithPaystack = catchAsyncError(async (req, res) => {
       if (!newUserTransaction) {
         throw new AppError('internal server error', 500);
       }
-
-      newUserTransaction;
-      console.log({ newUserTransaction });
     });
-
-    returnValue;
 
     return res.status(200).json({
       status: true,
       message: 'wallet funded successfully',
       data: {
-        // username: updatedUser.username,
+        username: updatedUser.username,
         reference: obj.reference,
-        // history: newUserTransaction.beneficiaryHistory,
+        history: newUserTransaction.beneficiaryHistory,
       },
     });
   }
@@ -157,111 +154,3 @@ export const verifyWalletWithPaystack = catchAsyncError(async (req, res) => {
     data: responseData,
   });
 });
-
-// export const fundAccount = catchAsyncError(async (req, res) => {
-//   const tenantConnection = getConnection(req.query.tenant);
-//   const { models: tenantModels } = tenantConnection;
-//   const session = await tenantConnection.startSession();
-//   session.startTransaction();
-//   const opts = { session, new: true };
-
-//   const obj = req.body;
-
-//   if (req.user.role === 'tenant') {
-//     throw new AppError('user not allowed to perform this operation', 403, session);
-//   }
-
-//   // Get default cvc value
-//   const settings = await tenantModels.Configuration.findOne({}).lean();
-
-//   //   Calc amount of cvc bought
-//   const cvcAmount = obj.amount / settings.cvcValue;
-
-//   // add fund to tenant
-//   const updatedTenant: any = await tenantModels.User.findOneAndUpdate(
-//     { username: tenantConnection.name },
-//     {
-//       $inc: {
-//         'wallet.balance': obj.amount,
-//         'wallet.cvc': -cvcAmount,
-//       },
-//     },
-//     opts,
-//   );
-
-//   if (!updatedTenant) {
-//     throw new AppError('user not found, tenant does not exist', 404, session);
-//   }
-
-//   if (updatedTenant.wallet.cvc < 0) {
-//     // insufficient cvc
-//     await notification({
-//       sender: 'System',
-//       title: 'Generate CVC',
-//       typeOfRecipients: tenantConnection.name,
-//       text: 'Generate cvc so as to fund users',
-//       priority: 'HIGH',
-//     });
-
-//     throw new AppError('Unable to process at this moment', 403, session);
-//   }
-
-//   // Update balance and cvc
-//   const updatedUser = await tenantModels.User.findOneAndUpdate(
-//     { username: obj.username },
-//     {
-//       $inc: {
-//         'wallet.balance': -obj.amount,
-//         'wallet.cvc': cvcAmount,
-//       },
-//     },
-//     opts,
-//   ).lean();
-
-//   if (!updatedUser) {
-//     throw new AppError('user not found', 404, session);
-//   }
-
-//   // Check for user balance is not negative after deduction
-//   if (updatedUser.wallet.balance < 0) {
-//     throw new AppError('Insufficient fund', 403, session);
-//   }
-
-//   const reference = generateId({ suffix: 'CP ' });
-//   // log user transaction
-//   await tenantModels.UserTransaction.create({
-//     reference,
-//     amount: obj.amount,
-//     source: 'wallet',
-//     destination: 'cvc wallet',
-//     status: 'SUCCESS',
-//     channel: 'app',
-//     narration: `Coin worth of ${obj.amount} purchased to credit '${updatedUser.username}' coin wallet`,
-//     currency: 'NGN',
-//     sender: updatedUser.username,
-//     beneficiary: updatedTenant.username,
-//     performedBy: updatedUser.username,
-//     senderHistory: {
-//       balanceBefore: updatedUser.wallet.balance + obj.amount,
-//       amount: obj.amount,
-//       balanceAfter: updatedUser.wallet.balance,
-//     },
-//     beneficiaryHistory: {
-//       balanceBefore: updatedTenant.wallet.balance - obj.amount,
-//       amount: obj.amount,
-//       balanceAfter: updatedTenant.wallet.balance,
-//     },
-
-//     type: 'BUY_COIN',
-//   });
-
-//   //FIXME: commit session
-//   await session.commitTransaction();
-//   session.endSession();
-
-//   return res.status(200).json({
-//     status: true,
-//     message: 'cvc bought successfully',
-//     data: updatedUser,
-//   });
-// });

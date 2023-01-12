@@ -25,10 +25,3 @@ financeRouter.get(
   isAuthenticated,
   financeController.verifyWalletWithPaystack,
 );
-
-// financeRouter.patch(
-//   '/wallet/fund/account',
-//   inputValidator({ body: TransferFundSchema }),
-//   isAuthenticated,
-//   financeController.fundAccount,
-// );
