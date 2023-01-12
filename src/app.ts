@@ -6,7 +6,7 @@ import { knex } from 'knex';
 import * as dotenv from 'dotenv';
 dotenv.config();
 import { AppError, globalErrorHandler } from './util/appError';
-import * as knexConfig from '../knexfile';
+import { developmentDb } from '../knexfile';
 
 import logger from './util/logger/logger';
 // HACK: to get app root
@@ -14,6 +14,7 @@ process.env.APP_ROOT = path.join(__dirname, '../');
 
 // import routes
 import { userRouter } from './api/v1/user/user.route';
+import { financeRouter } from './api/v1/finance/finance.route';
 import { Model } from 'objection';
 
 // set up error handler
@@ -31,7 +32,7 @@ process.on('unhandledRejection', (e: any) => {
 const app: Application = express();
 
 // Database connection
-const connection = knex(knexConfig);
+const connection = knex(developmentDb);
 Model.knex(connection);
 // Testing connection
 try {
@@ -57,6 +58,7 @@ app.use(express.json());
 
 // routes
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/finances', financeRouter);
 
 app.all('*', (req, _res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));

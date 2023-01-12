@@ -1,5 +1,4 @@
 import bcrypt from 'bcrypt';
-// import jwt from 'jsonwebtoken';
 import { v4 } from 'uuid';
 import { AppError, catchAsyncError } from '../../../util/appError';
 import { generateTokens } from '../../../util/utility';
@@ -136,15 +135,11 @@ export const updateUser = catchAsyncError(async (req, res) => {
     obj.password = hash;
   }
 
-  const update = await User.query().findOne(query).patch(obj).findOne(query);
+  const updatedUser = await user.$query().updateAndFetch(obj);
 
-  // As we cannot find a query that suit our use cases because of the db of choice, we have to make another query to fetch updated data
-
-  if (!update) {
+  if (!updatedUser) {
     throw new AppError('Internal server error', 500);
   }
-
-  const updatedUser: any = await User.query().findOne(query);
 
   updatedUser.password = undefined;
 
@@ -167,7 +162,7 @@ export const deleteUser = catchAsyncError(async (req, res) => {
     throw new AppError('user does not exist', 404);
   }
 
-  const deletedUser = await User.query().findOne(query).delete();
+  const deletedUser = await user.$query().delete();
 
   if (!deletedUser) {
     throw new AppError('Internal server error', 500);

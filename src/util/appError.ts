@@ -23,8 +23,7 @@ export class AppError extends Error {
   }
 
   async closeSession(session) {
-    await session.abortTransaction();
-    session.endSession();
+    await session.rollback();
   }
 }
 
