@@ -6,10 +6,11 @@ A demo credit service with wallet functionality built with knex.js, Objection.js
 
 Create a `.env` file in the root of the project and set the following environment variables:
 
-DATABASE_URL: `mysql://user@host:passowrd/database_name`
-
+DATABASE_URL: Your db host
+APP_PORT: your port
 JWT_SECRET: your secret
 PAYSTACK_SECRET: your paystack secret key
+TEST_DB: your test db
 
 ## Prerequisites
 
