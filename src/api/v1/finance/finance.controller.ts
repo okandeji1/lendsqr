@@ -1,7 +1,7 @@
-import axios from 'axios';
+import axios from '../../../util/axios';
 import { v4 } from 'uuid';
 import { AppError, catchAsyncError } from '../../../util/appError';
-import { generateId } from '../../../@core/universal';
+import { disbursement, generateId } from '../../../@core/universal';
 import { User } from '../../../database/models/user.model';
 import { UserTransaction } from '../../../database/models/transaction.model';
 
@@ -129,12 +129,8 @@ export const verifyWalletWithPaystack = catchAsyncError(async (req, res) => {
           balanceAfter: updatedUser.balance,
         },
 
-        type: 'DEPOSIT',
+        type: 'FUND_WALLET',
       });
-
-      if (!newUserTransaction) {
-        throw new AppError('internal server error', 500);
-      }
     });
 
     return res.status(200).json({
@@ -152,5 +148,152 @@ export const verifyWalletWithPaystack = catchAsyncError(async (req, res) => {
     status: false,
     message: 'funding of wallet failed',
     data: responseData,
+  });
+});
+
+export const transferFund = catchAsyncError(async (req, res) => {
+  const obj = req.body;
+
+  // find user (the sender)
+  const checkSender: any = await User.query().findOne({ username: obj.sender });
+
+  if (!checkSender) {
+    throw new AppError(`Sender with username ${obj.sender} not found`, 404);
+  }
+
+  // find user (the beneficiary)
+  const checkBeneficiary: any = await User.query().findOne({ username: obj.beneficiary });
+
+  if (!checkBeneficiary) {
+    throw new AppError(`Beneficiary with username ${obj.beneficiary} not found`, 404);
+  }
+
+  // Initials
+  let sender: any;
+  let beneficiary: any;
+  let newUserTransaction: any;
+  const reference = generateId({ suffix: 'WT' });
+
+  // Start transaction
+  await User.transaction(async (trx) => {
+    // Deduct fund from user (Sender)
+    await checkSender.$query(trx).decrement('balance', obj.amount);
+
+    // Get the sender (Updated data)
+    sender = await User.query(trx).findOne({ username: obj.sender });
+
+    // Check sender balance (Must not be -ve)
+    if (sender.balance < 0) {
+      throw new AppError('Insufficient fund', 402);
+    }
+
+    // Proceed to add fund to beneficiary (Binding)
+    await checkBeneficiary.$query(trx).increment('balance', obj.amount);
+    // Get beneficiary data
+    beneficiary = await User.query(trx).findOne({ username: obj.beneficiary });
+
+    // Log transaction
+    newUserTransaction = await UserTransaction.query(trx).insert({
+      uuid: v4(),
+      reference,
+      amount: obj.amount,
+      channel: 'web',
+      source: 'wallet',
+      destination: 'wallet',
+      status: 'SUCCESS',
+      narration:
+        obj.narration ||
+        `transfer of ${obj.amount} fund from user '${obj.sender}' to user '${obj.beneficiary}'`,
+      currency: 'NGN',
+      sender: obj.sender,
+      beneficiary: obj.beneficiary,
+      senderHistory: {
+        balanceBefore: sender.balance + obj.amount,
+        amount: obj.amount,
+        balanceAfter: sender.balance,
+      },
+      // NOTE: history of the beneficiary, the beneficiary should be able to get personalized history when transaction is viewed from his end
+      // to display personalized transaction according to user in the frontend,
+      // check if user.mobile === transaction.beneficiary, if true, user is the beneficiary of the transaction and beneficiaryHistory can be display instead of history
+      beneficiaryHistory: {
+        balanceBefore: beneficiary.balance - obj.amount,
+        amount: obj.amount,
+        balanceAfter: beneficiary.balance,
+      },
+      type: 'WALLET_TRANSFER',
+    });
+  });
+
+  return res.status(200).json({
+    status: true,
+    message: 'fund transfered successfully',
+    data: {
+      sender: sender.username,
+      beneficiary: beneficiary.username,
+      reference,
+      amount: obj.amount,
+      history: newUserTransaction.history,
+      wallet: sender.balance,
+    },
+  });
+});
+
+export const withdrawFund = catchAsyncError(async (req, res) => {
+  const obj = req.body;
+
+  // Start transaction
+  const trx = await User.startTransaction();
+  const sender: any = await User.query(trx).findOne({ username: obj.sender });
+
+  // Remove fund from wallet
+  await sender.$query(trx).decrement('balance', obj.amount);
+
+  const updatedUser: any = await User.query(trx).findOne({ username: obj.sender });
+
+  if (updatedUser.balance < 0) {
+    throw new AppError('Insufficient fund', 402, trx);
+  }
+
+  // Proceed to make withdrawal
+  const disburse = await disbursement({
+    username: req?.use?.username,
+    bankDetails: obj.bankDetails,
+    trx,
+  });
+
+  if (!disburse.status) {
+    throw new AppError(disburse.message, 402, trx);
+  }
+
+  const reference = disburse.reference;
+
+  await UserTransaction.query(trx).insert({
+    reference,
+    source: 'bank',
+    amount: obj.amount,
+    destination: 'bank',
+    status: 'SUCCESS',
+    narration: `${obj.reason} for ${reference}`,
+    currency: 'NGN',
+    sender: obj.sender,
+    senderHistory: {
+      balanceBefore: Number(updatedUser.balance) + obj.amount,
+      amount: obj.amount,
+      balanceAfter: Number(updatedUser.balance),
+    },
+    type: 'WITHDRAW_WALLET',
+  });
+
+  // Commit transaction
+  trx.commit();
+  return res.status(200).json({
+    status: true,
+    data: {
+      sender: obj.sender,
+      reference,
+      amount: obj.amount,
+      beneficiary: obj.bankDetails,
+    },
+    message: 'Withdrawal successfully placed',
   });
 });

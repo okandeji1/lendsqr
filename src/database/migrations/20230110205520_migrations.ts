@@ -25,14 +25,14 @@ export async function up(knex: Knex) {
         table.string('destination').notNullable();
         table.string('status').notNullable();
         table.string('channel').notNullable();
-        table.string('paymentGateway').notNullable();
+        table.string('paymentGateway').nullable();
         table.text('narration').notNullable();
         table.string('currency').notNullable();
         table.string('beneficiary').nullable();
         table.string('sender').nullable();
         table.jsonb('beneficiaryHistory').nullable();
         table.jsonb('senderHistory').nullable();
-        table.enum('type', ['DEPOSIT', 'WITHDRAW', 'TRANSFER']).notNullable();
+        table.enum('type', ['FUND_WALLET', 'WITHDRAW_WALLET', 'WALLET_TRANSFER']).notNullable();
         table.datetime('created_at', { precision: 6 }).notNullable().defaultTo(knex.fn.now(6));
         table.datetime('updated_at', { precision: 6 }).notNullable().defaultTo(knex.fn.now(6));
       })

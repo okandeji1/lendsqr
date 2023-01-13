@@ -85,7 +85,7 @@ export const getUsers = catchAsyncError(async (req, res) => {
   //     query = { ...query, [key]: value };
   //   }
 
-  //   const users: any = await User.query(query).offset((page - 1) * limit)
+  // We would have use a complex query to get data with client query request but the database of choice doesn't allow that so we stick to this.
   const users: any = await User.query()
     .offset((page - 1) * limit)
     .limit(limit)

@@ -17,6 +17,19 @@ export const verifyWalletWithPaystackSchema = joi.object({
 });
 
 export const TransferFundSchema = joi.object({
-  username: joi.string().required(),
+  sender: joi.string().required(),
+  beneficiary: joi.string().required(),
+  narration: joi.string(),
+  amount: joi.number().integer().positive().required(), // comm
+});
+
+export const withdrawFundSchema = joi.object({
   amount: joi.number().integer().positive().required(),
+  sender: joi.string().required(),
+  reason: joi.string().required(),
+  bankDetails: joi.object({
+    bankCode: joi.string().required(),
+    accountNumber: joi.string().required(),
+    accountName: joi.string().required(),
+  }),
 });

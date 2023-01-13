@@ -5,7 +5,8 @@ import * as financeController from './finance.controller';
 import {
   depositWalletWithPaystackSchema,
   verifyWalletWithPaystackSchema,
-  //   TransferFundSchema,
+  TransferFundSchema,
+  withdrawFundSchema,
 } from './finance.validator';
 
 import { inputValidator, isAuthenticated } from '../../../util/middleware';
@@ -24,4 +25,18 @@ financeRouter.get(
   inputValidator({ query: verifyWalletWithPaystackSchema }),
   isAuthenticated,
   financeController.verifyWalletWithPaystack,
+);
+
+financeRouter.post(
+  '/wallet/transfer/fund',
+  inputValidator({ body: TransferFundSchema }),
+  isAuthenticated,
+  financeController.transferFund,
+);
+
+financeRouter.post(
+  '/wallet/withdraw/fund',
+  inputValidator({ body: withdrawFundSchema }),
+  isAuthenticated,
+  financeController.withdrawFund,
 );
