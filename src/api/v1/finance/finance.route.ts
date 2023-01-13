@@ -7,6 +7,7 @@ import {
   verifyWalletWithPaystackSchema,
   TransferFundSchema,
   withdrawFundSchema,
+  FundUserSchema,
 } from './finance.validator';
 
 import { inputValidator, isAuthenticated } from '../../../util/middleware';
@@ -39,4 +40,11 @@ financeRouter.post(
   inputValidator({ body: withdrawFundSchema }),
   isAuthenticated,
   financeController.withdrawFund,
+);
+
+financeRouter.patch(
+  '/wallet/fund/user',
+  inputValidator({ body: FundUserSchema }),
+  isAuthenticated,
+  financeController.fundUser,
 );

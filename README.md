@@ -42,6 +42,20 @@ Use the service by making requests to the API endpoints
 
 ## API Endpoints
 
+- `GET /api/v1/users`: Retrieve a list of all users
+- `GET /api/v1/users?username='username'`: Retrieve a single user by username
+- `POST /api/v1/users/register`: Create a new user
+- `POST /api/v1/users/login`: Login
+- `PUT /api/v1/users/update`: Update an existing user using username
+- `DELETE /api/v1/users/delete`: Delete an existing user using username
+- `POST /api/v1/finances/wallet/deposit/paystack` Initialize paystack checkout page to make payment
+- `GET /api/v1/finances/wallet/verify/paystack?reference='reference'` Verify payment with reference to fund wallet
+- `POST /api/v1/finances/wallet/transfer/fund` Transfer fund from one user wallet to another user wallet
+- `POST /api/v1/finances/wallet/withdraw/fund` Withdraw from wallet to bank with paystack gateway
+- `PATCH /api/v1/finances/wallet/fund/user` Fund a user wallet
+- `GET /api/v1/transactions`: Retrieve a list of all transactions
+- `GET /api/v1/transactions?reference='reference'`: Retrieve a single transaction
+
 ## Contributing
 
 1. Fork the repository

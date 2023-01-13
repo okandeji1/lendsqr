@@ -33,3 +33,9 @@ export const withdrawFundSchema = joi.object({
     accountName: joi.string().required(),
   }),
 });
+
+export const FundUserSchema = joi.object({
+  username: joi.string().required(),
+  narration: joi.string(),
+  amount: joi.number().integer().positive().required(), // comm
+});

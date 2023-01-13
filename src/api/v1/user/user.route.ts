@@ -27,7 +27,7 @@ userRouter.get(
 
 userRouter.get('/me', isAuthenticated, userController.getUser);
 
-userRouter.patch(
+userRouter.put(
   '/update',
   inputValidator({ body: updateUserSchema }),
   isAuthenticated,

@@ -297,3 +297,51 @@ export const withdrawFund = catchAsyncError(async (req, res) => {
     message: 'Withdrawal successfully placed',
   });
 });
+
+export const fundUser = catchAsyncError(async (req, res) => {
+  const obj = req.body;
+
+  const user: any = await User.query().findOne({ username: obj.username });
+
+  if (!user) {
+    throw new AppError(`Sender with username ${obj.username} not found`, 404);
+  }
+
+  // Fund user
+  await user.$query().increment('balance', obj.amount);
+
+  // Get updated user data
+  const updatedUser: any = await User.query().findOne({ username: obj.username });
+
+  const reference = generateId({ suffix: 'BT' });
+
+  const newUserTransaction: any = await UserTransaction.query().insert({
+    uuid: v4(),
+    reference,
+    amount: obj.amount,
+    source: 'app',
+    destination: 'wallet',
+    status: 'SUCCESS',
+    channel: 'web',
+    narration: obj.narration || `Added ${obj.amount} fund to ${updatedUser.username} wallet`,
+    currency: 'NGN',
+    beneficiary: updatedUser.username,
+    beneficiaryHistory: {
+      balanceBefore: updatedUser.balance - obj.amount,
+      amount: obj.amount,
+      balanceAfter: updatedUser.balance,
+    },
+
+    type: `${obj.action}_WALLET`,
+  });
+
+  return res.status(200).json({
+    status: true,
+    message: 'wallet funded successfully',
+    data: {
+      username: updatedUser.username,
+      reference: reference,
+      history: newUserTransaction.beneficiaryHistory,
+    },
+  });
+});

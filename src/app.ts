@@ -15,6 +15,7 @@ process.env.APP_ROOT = path.join(__dirname, '../');
 // import routes
 import { userRouter } from './api/v1/user/user.route';
 import { financeRouter } from './api/v1/finance/finance.route';
+import { transactionRouter } from './api/v1/transaction/transaction.route';
 import { Model } from 'objection';
 
 // set up error handler
@@ -59,6 +60,7 @@ app.use(express.json());
 // routes
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/finances', financeRouter);
+app.use('/api/v1/transactions', transactionRouter);
 
 app.all('*', (req, _res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
