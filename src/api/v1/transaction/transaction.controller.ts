@@ -10,52 +10,56 @@ export const getTransactions = catchAsyncError(async (req, res) => {
   // NOTE: Just like when you send money to your friends bank account from yours, You get debit alert personalized for you and your
   // friend get credit alert personalized for him as well.
   // NOTE: this logic is to get transactions belonging to a user whether credit or debit.
+
   let query: any = {};
+  let objKey: any;
+  let transactions: any;
+
   for (const [key, value] of Object.entries(obj)) {
-    if (
-      key === 'tenant' ||
-      key === 'limit' ||
-      key === 'page' ||
-      key === 'startDate' ||
-      key === 'endDate'
-    ) {
+    if (key === 'limit' || key === 'page') {
       continue;
     }
-
-    if (key === 'username') {
-      query = { ...query, $or: [{ sender: value }, { beneficiary: value }] };
-      continue;
-    }
-
-    if (key === 'type' || key === 'status') {
-      // @ts-ignore
-      const items = value.split(',');
-      let $or: any = [];
-      for (const item of items) {
-        $or = [...$or, { [key]: item }];
-      }
-      query.$and = query.$and || [];
-      query.$and.push({ $or });
-
-      continue;
-    }
-
+    objKey = key;
     query = { ...query, [key]: value };
   }
 
-  if (obj.startDate && obj.endDate) {
-    let startDate: any = new Date(obj.startDate).setHours(0, 0, 0);
-    let endDate: any = new Date(obj.endDate).setHours(23, 59, 59);
+  if (objKey && query[objKey]) {
+    switch (objKey) {
+      case 'username':
+        // Get sender or beneficiary using username query parameter
+        transactions = await UserTransaction.query()
+          .orWhere('sender', obj[objKey])
+          .orWhere('beneficiary', obj[objKey])
+          .offset((page - 1) * limit)
+          .limit(limit)
+          .orderBy('created_at', 'desc');
+        break;
+      default:
+        // Get with reference and other query parameters
+        transactions = await UserTransaction.query()
+          .where(objKey, obj[objKey])
+          .offset((page - 1) * limit)
+          .limit(limit)
+          .orderBy('created_at', 'desc');
+        break;
+    }
 
-    startDate = new Date(startDate);
-    endDate = new Date(endDate);
-    query = {
-      ...query,
-      createdAt: { $gte: startDate, $lte: endDate },
-    };
+    return res.status(200).json({
+      status: true,
+      message: 'found transaction(s)',
+      data: transactions,
+      meta: {
+        total: transactions.length,
+        skipped: page * limit,
+        perPage: limit,
+        page: page,
+        pageCount: Math.ceil(transactions.length / limit),
+      },
+    });
   }
 
-  const transactions: any = await UserTransaction.query()
+  // Get all transactions
+  transactions = await UserTransaction.query()
     .offset((page - 1) * limit)
     .limit(limit)
     .orderBy('created_at', 'desc');

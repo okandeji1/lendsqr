@@ -73,20 +73,47 @@ export const loginUser = catchAsyncError(async (req, res) => {
 });
 
 export const getUsers = catchAsyncError(async (req, res) => {
-  //   const obj = req.query;
+  const obj = req.query;
 
   const { limit, page } = req.query;
 
-  //   let query: any = {};
-  //   for (const [key, value] of Object.entries(obj)) {
-  //     if (key === 'limit' || key === 'page') {
-  //       continue;
-  //     }
-  //     query = { ...query, [key]: value };
-  //   }
+  let query: any = {};
+  let objKey: any;
+  for (const [key, value] of Object.entries(obj)) {
+    if (key === 'limit' || key === 'page') {
+      continue;
+    }
+    objKey = key; // This will take the last key in the loop
+    query = { ...query, [key]: value };
+  }
 
   // We would have use a complex query to get data with client query request but the database of choice doesn't allow that so we stick to this.
+
+  if (objKey && query[objKey]) {
+    // Get users with client query
+    const users: any = await User.query()
+      .select('id', 'username', 'name', 'email', 'created_at', 'updated_at')
+      .where(objKey, obj[objKey])
+      .offset((page - 1) * limit)
+      .limit(limit)
+      .orderBy('created_at', 'desc');
+
+    return res.status(200).json({
+      status: true,
+      message: 'found user(s)',
+      data: users,
+      meta: {
+        total: users.length,
+        skipped: page * limit,
+        perPage: limit,
+        page: page,
+        pageCount: Math.ceil(users.length / limit),
+      },
+    });
+  }
+
   const users: any = await User.query()
+    .select('id', 'username', 'name', 'email', 'created_at', 'updated_at')
     .offset((page - 1) * limit)
     .limit(limit)
     .orderBy('created_at', 'desc');
