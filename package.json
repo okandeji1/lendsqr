@@ -7,7 +7,7 @@
     "start": "NODE_PATH=./build node build/src/index.js",
     "build": "tsc",
     "start:dev": "tsc-watch --noClear --onSuccess \"node --inspect=0.0.0.0:9229 ./build/src/index.js\"",
-    "test": "jest --coverage",
+    "test": "yarn build && jest --coverage",
     "lint": "tsc --noEmit && eslint \"**/*.{js,ts}\" --quiet --fix",
     "code:check": "yarn code:lint; yarn code:format --check",
     "code:clean": "yarn code:lint --fix; yarn code:format --write",
@@ -71,6 +71,7 @@
     "poetic": "^1.7.0",
     "superagent": "^8.0.6",
     "supertest": "^6.3.3",
+    "ts-jest": "^29.0.5",
     "ts-node": "^10.9.1",
     "tsc-watch": "^5.0.3",
     "typescript": "^4.7.4"

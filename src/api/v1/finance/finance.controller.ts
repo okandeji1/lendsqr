@@ -332,7 +332,7 @@ export const fundUser = catchAsyncError(async (req, res) => {
       balanceAfter: updatedUser.balance,
     },
 
-    type: `${obj.action}_WALLET`,
+    type: 'FUND_WALLET',
   });
 
   return res.status(200).json({

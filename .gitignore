@@ -28,7 +28,6 @@ bower_components
 dist
 build
 coverage
-jest.config.js
 
 # Editors
 .idea
